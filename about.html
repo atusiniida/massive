@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+  <title>MASSIVE viewer</title>
+  <link rel="stylesheet" href="./css/bootstrap.min.css">
+  <link rel="stylesheet" href="./css/my.css">
+  <link rel="stylesheet" href="./css/bootstrap-slider.min.css">
+  <script src="./js/jquery-3.1.1.min.js"></script>
+  <script src="./js/d3.v3.js"></script>
+  <script src="./js/bootstrap.min.js"></script>
+  <script src="./js/d3-legend.min.js"></script>
+  <script src="./js/bootstrap-slider.min.js"></script>
+  <script src="https://d3js.org/d3-queue.v3.min.js"></script>
+</head>
+
+<header  class="header">
+  <ul class="nav nav-tabs">
+    <li class="active"><a href="about.html">&nbsp;About&nbsp;</a></li>
+    <li><a href="focused.php">&nbsp;Focused View&nbsp;</a></li>
+    <li><a href="comparative.php">&nbsp;Comparative View&nbsp;</a></li>
+  </ul>
+</header>
+
+<body>
+  <div class="container-fluid about">
+    <p>
+      <strong>This is for a website for explaining a novel methodology for
+        sensitivity analysis of agent-based simulation, MASSIVE
+        (Massively parallel Agent-based Simulations and Subsequent
+        Interactive Visualization-based Exploration).</strong> Employing a supercomputer,
+        MASSIVE performs a huge number of agent-based simulations
+        with a broad range of parameter settings and enables us to intuitively explore the massive
+        results via an interactive visualization tool, the MASSIVE viewer.
+      </p>
+      <p>
+        <strong>As an explanatory example, this website presents
+          massive results from agent-based
+          simulations of cancer evolution on a one-dimensional lattice
+          with free-ends.</strong>  In each trials of the simulation, a cell divides with
+          a probability of 10<sup>4</sup>
+          until the population size reaches at <font color="green"><i>P</i></font>
+          or time reach at 10<sup>6</sup>.
+          In each cell division, <font color="green"><i>m</i></font>  mutations
+          are generated on average and each cell can accumulate 3 mutations at maximum.
+          Resources are provided from both the ends
+          of the one-dimensional lattice and subject
+          to exponential decays with a half-distance parameter <font color="green"><i>d</i></font>.
+          Each mutation increases the cell division rate by <font color="green"><i>f</i></font> fold if no
+          resource bias exists (i.e., with infinite <font color="green"><i>d</i></font>).
+          In the presence of a resource bias, the cell division rate is
+          calculated by further multiplying the resource distribution.
+        </p>
+        <p>
+          For convenience, we converted the parameters as follows:
+          <font color="green"><i>m</i>′ = −log<sub>10</sub>(<i>m</i>)</font>,
+          <font color="green"><i>f</i>′ = log<sub>10</sub>(<i>f</i>)</font>,
+          <font color="green"><i>p</i>′ = log<sub>10</sub>(<i>P</i>)</font>  and
+          <font color="green"><i>d</i>′ = log<sub>10</sub>(<i>d</i>)</font>.
+          We then tested every combination of
+          <font color="green"><i>m</i>′ ∈ {1, 2, 3}</font>, 
+          <font color="green"><i>f</i>′ ∈ {0.1,0.2,0.3,··· ,1.0}</font>,
+          <font color="green"><i>p</i>′ ∈ {3,4,5}</font> and
+          <font color="green"><i>d</i>′ ∈ {1,2,3,4,5}</font>, respectively.
+          Namely, <strong>a larger <font color="green"><i>m</i>′</font> means a smaller mutation rate,
+          a larger  <font color="green"><i>f</i>′</font> means a stronger mutation effect,
+          a larger <font color="green"><i>p</i>′</font> means a larger maximum population size,
+          and a larger <font color="green"><i>d</i>′</font> means a weaker resource bias.</strong>
+          For each parameter setting, we performed 50 Monte Carlo trials,
+          from which we obtained averaged values of 11 summary statistics (listed in Table 1)
+          for quantifying simulation results. Mutation profile heat maps
+          (an example is provided in Figure 1) were also produced from 5 of
+          the 50 Monte Carlo trials.  All the results can be intuitively
+          explored in the <a href="focused.php">focused</a> and
+          <a href="comparative.php">comparative</a> view modes of the MASSIVE viewer
+          (see <a href="https://www.biorxiv.org/content/10.1101/510057v1">our paper</a> for more details).
+        </p>
+      </div>
+      <div class="container-fluid　row">
+        <div class="col-sm-7">
+          <div class="table">
+          <p> Table 1. a list of the summary statistics </p>
+          <table class="table-bordegreen">
+            <thead>
+              <tr>
+                <th>name</th>
+                <th>description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>mutation count</td>
+                <td>number of all mutations</td>
+              </tr>
+              <tr>
+                <td>clonal mutation count</td>
+                <td>number of clonal mutations</td>
+              </tr>
+              <tr>
+                <td>subclonal mutation count</td>
+                <td>number of subclonal mutations</td>
+              </tr>
+              <tr>
+                <td>clonal mutation proportion</td>
+                <td>proportion of clonal mutation count</td>
+              </tr>
+              <tr>
+                <td>subclonal mutation proportion</td>
+                <td>proportion of subclonal mutation count</td>
+              </tr>
+              <tr>
+                <td>Shannon index 0.1</td>
+                <td>Shannon index calculated with a mutation frequency cutoff of 0.1</td>
+              </tr>
+              <tr>
+                <td>Shannon index 0.05</td>
+                <td>Shannon index calculated with a mutation frequency cutoff of 0.05</td>
+              </tr>
+              <tr>
+                <td>Simpson index 0.1</td>
+                <td>Simpson index calculated with a mutation frequency cutoff of 0.1</td>
+              </tr>
+              <tr>
+                <td>Simpson index 0.05</td>
+                <td>Simpson index calculated with a mutation frequency cutoff of 0.05</td>
+              </tr>
+              <tr>
+                <td>time</td>
+                <td>number of time steps when simulation is finished</td>
+              </tr>
+              <tr>
+                <td>population size</td>
+                <td>number of cells when simulation is finished</td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        <div class="col-sm-5">
+          <div class="figure">
+              <p> Figre 1. an example of the mutation profile heat maps</p>
+            <img src="image/mutprofile.png" width="400" height="400">
+          </div>
+        </div>
+      </div>
+
+    </body>
+    <footer id="footer">
+      <p>&nbsp;</p>
+      <p>&nbsp;</p>
+    </footer>
+    </html>

@@ -1,0 +1,639 @@
+
+
+var $script     = $('#script');
+var datasets      = JSON.parse($script.attr('data-datasets'));
+var dataset1      = JSON.parse($script.attr('data-dataset1'));
+var dataset2      = JSON.parse($script.attr('data-dataset2'));
+var dataset3      = JSON.parse($script.attr('data-dataset3'));
+var v1      = JSON.parse($script.attr('data-v1'));
+var v2      = JSON.parse($script.attr('data-v2'));
+var v3      = JSON.parse($script.attr('data-v3'));
+var v4      = JSON.parse($script.attr('data-v4'));
+var V1      = JSON.parse($script.attr('data-u1'));
+var V2      = JSON.parse($script.attr('data-u2'));
+var V3      = JSON.parse($script.attr('data-u3'));
+var V4      = JSON.parse($script.attr('data-u4'));
+var u1      = JSON.parse($script.attr('data-x'));
+var u2      = JSON.parse($script.attr('data-y'));
+var u3      = JSON.parse($script.attr('data-z1'));
+var u4      = JSON.parse($script.attr('data-z2'));
+var z1_value0      = JSON.parse($script.attr('data-z1value'));
+var z2_value0      = JSON.parse($script.attr('data-z2value'));
+
+var variables = [u1,u2,u3,u4];
+var variable2values = {};
+variable2values[v1] = V1;
+variable2values[v2] = V2;
+variable2values[v3] = V3;
+variable2values[v4] = V4;
+
+var convertedVariableName = {};
+convertedVariableName["f"] = "f'";
+convertedVariableName["m"] = "m'";
+convertedVariableName["p"] = "p'";
+convertedVariableName["d"] = "d'";
+function convertVariableName(x){
+  if(convertedVariableName[x]){
+      return convertedVariableName[x];
+  }else{
+    return x;
+  }
+}
+
+var convertedDatasetName = {};
+convertedDatasetName["allMutationCount"] = "mutation count";
+convertedDatasetName["clonalMutationCount"] = "clonal mutation count";
+convertedDatasetName["clonalMutationProportion"] = "clonal mutation proportion";
+convertedDatasetName["growthTime"] = "time";
+convertedDatasetName["populationSize"] = "population size";
+convertedDatasetName["shannonDiversity0.05"] = "Shannon index 0.1";
+convertedDatasetName["shannonDiversity0.1"] = "Shannon index 0.05";
+convertedDatasetName["simpsonDiversity0.05"] = "Simpson index 0.1";
+convertedDatasetName["simpsonDiversity0.1"] = "Simpson index 0.05";
+convertedDatasetName["subClonalMutationCount"] = "subclonal mutation count";
+convertedDatasetName["subClonalMutationProportion"] = "subclonal mutation proportion";
+function convertDatasetName(x){
+  if(convertedDatasetName[x]){
+    return convertedDatasetName[x];
+  }else{
+    return x;
+  }
+}
+
+var margin = { top: 20, right: 10, bottom: 20, left: 10 }, heatmapSize = 200, labelSpaceWidth = 40;
+
+var  x_variable, y_variable, z1_variable, z2_variable, x_values, y_values,  z1_values, z2_values, z1_index, z2_index;
+var width,height;
+var gridWidth, gridHeight;
+var z1_value, z2_value;
+
+var relativeScale = false, showImage = true;
+
+var legendWidth = heatmapSize - labelSpaceWidth*2, legendHeight = 10;
+
+var Data = {};
+
+var pp1Slider = null;
+var pp2Slider = null;
+
+var svg1,svg2,svg3,image;
+
+var colorScales = {};
+var min = {};
+var max = {};
+
+setVariables(variables);
+var q = d3.queue();
+for(var i = 0; i < datasets.length; i++){
+  q.defer(d3.tsv, "data/" + datasets[i] + ".tsv");
+}
+q.awaitAll(function(error, dataarray){
+  for(var i = 0; i < datasets.length; i++){
+    Data[datasets[i]] = dataarray[i];
+  }
+  draw();
+  setControlPanel();
+});
+
+
+function setVariables(variables){
+ x_variable = variables[0];
+ y_variable = variables[1];
+ z1_variable = variables[2];
+ z2_variable = variables[3];
+
+
+ x_values =  variable2values[x_variable];
+ y_values =  variable2values[y_variable];
+ z1_values =  variable2values[z1_variable];
+ z2_values =  variable2values[z2_variable];
+
+ x_index = {};
+ for (var i = 0; i < x_values.length; i++){
+  x_index[x_values[i]] = i;
+ }
+ y_index = {};
+ for (var i = 0; i < y_values.length; i++){
+  y_index[y_values[i]] = i;
+ }
+ z1_index = {};
+ for (var i = 0; i < z1_values.length; i++){
+  z1_index[z1_values[i]] = i;
+ }
+ z2_index = {};
+ for (var i = 0; i < z2_values.length; i++){
+  z2_index[z2_values[i]] = i;
+ }
+
+ width = 　heatmapSize  + labelSpaceWidth,
+ height = heatmapSize + legendHeight  + labelSpaceWidth*2;
+ if(z1_value0 === ""){
+   z1_value = z1_values[0];
+ }else{
+   z1_value = z1_value0
+ }
+ if(z2_value0 === ""){
+   z2_value = z2_values[0];
+ }else{
+   z2_value = z2_value0
+ }
+ gridWidth = heatmapSize/x_values.length, gridHeight = heatmapSize/y_values.length;
+}
+
+function draw(){
+
+
+  svg1 = d3.select("#chart1").append("svg")
+  .attr("width", width + margin.left + margin.right)
+  .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+   svg2 = d3.select("#chart2").append("svg")
+  .attr("width", width + margin.left + margin.right)
+  .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+   svg3 = d3.select("#chart3").append("svg")
+  .attr("width", width + margin.left + margin.right)
+  .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  image = d3.select("#image");
+
+  setSVG(svg1, z1_value, z2_value, dataset1, relativeScale, "red");
+  setSVG(svg2, z1_value, z2_value, dataset2, relativeScale, "orange");
+  setSVG(svg3, z1_value, z2_value, dataset3, relativeScale, "blue");
+}
+
+function addCards(svg, data, colorScale, dataset){
+    var cards = svg.selectAll(".card")
+    .data(data, function(d) {return d[x_variable]+':'+d[y_variable];});
+
+    cards.append("title");
+
+    cards.enter().append("rect")
+    .attr("x", function(d, i) {  return labelSpaceWidth + x_index[d[x_variable]] * gridWidth +0.5; } )
+    .attr("y", function(d, i) { return (y_values.length - 1 - y_index[d[y_variable]]) * gridHeight +0.5; })
+    .attr("rx", 4)
+    .attr("ry", 4)
+    .attr("class", "card bordered")
+    .attr("width", gridWidth-1)
+    .attr("height", gridHeight-1)
+      //.style("fill", "#ffffe5")
+      .style("fill", function(d) { return colorScale(+d.mean); })
+      .on("mouseover", function(d) {
+        if(showImage){
+            showImages(d, dataset);
+          }
+        })
+      .on("click", function(d) {
+        if(showImage){
+          showImage = false;
+          d3.select(this).attr("class", "card bordered highlighted");
+        }else{
+          showImage = true;
+          showImages(d, dataset);
+          d3.select(".highlighted").attr("class", "card bordered");
+
+        }
+      });
+   //cards.transition().duration(1000)
+   //.style("fill", function(d) { return colorScale(d.mean); });
+
+   cards.select("title").text(function(d) { return d.mean; });
+
+   cards.exit().remove();
+}
+
+function showImages(d, dataset){
+  var tmp = [d[v1], d[v2], d[v3], d[v4]];
+  d3.selectAll("#image > *").remove();
+  image = d3.select("#image");
+  image.append("p").attr("class","bold").attr("align","center").text(convertVariableName(z1_variable) + " = " +  z1_value  + ", "  +  convertVariableName(z2_variable) + " = "  + z2_value  + ", "  +  convertVariableName(x_variable)  + " = " + d[x_variable] + ", " + convertVariableName(y_variable)  + " = " +  d[y_variable]  + ", "  +  convertDatasetName(dataset) +  " = " + new Number(d.mean).toPrecision(3) + "±" + new Number(d.sd).toPrecision(3));
+  image.append("div").attr("align","center").selectAll("img")
+  .data([0,1,2,3,4], function (d) {return d;})
+  .enter().append("img")
+      .attr("src", function(d, i) { return "image/" + v1  +  tmp[0] + "_" + v2 + tmp[1]  + "_" + v3  +  tmp[2] + "_" + v4 + tmp[3] + "_" + d  + ".png"; })
+      .attr("width",  200)
+      .attr("height", 200);
+
+}
+
+function addLegend(svg, min, max, colorScale, color){
+  var idGradient = "legendGradient" + color;
+  var numberHues = 20;
+  var x = labelSpaceWidth *2;
+  var y = heatmapSize + labelSpaceWidth;
+  svg.append("g")
+  .append("defs")
+  .append("linearGradient")
+  .attr("id",idGradient)
+  .attr("x1","0%")
+  .attr("x2","100%")
+  .attr("y1","0%")
+  .attr("y2","0%");
+  svg.append("rect")
+  .attr("fill","url(#" + idGradient + ")")
+  .attr("x",x)
+  .attr("y",y)
+  .attr("width",legendWidth)
+  .attr("height",legendHeight)
+  .attr("rx",4)
+  .attr("ry",4)
+  .attr("class", "bordered");
+
+  var theData = [];
+  var d = 1/(numberHues-1);
+  var d2 = (max-min)*d;
+  for (var i = 0; i < numberHues; i++){
+    var v = min + i*d2;
+    var p = i*d;
+    var col = colorScale(v);
+    theData.push({"rgb":col, "percent":p});
+  }
+
+  d3.select('#' + idGradient).selectAll('stop')
+  .data(theData)
+  .enter().append('stop')
+  .attr('offset',function(d) {
+                            return d.percent;
+                })
+  .attr('stop-color',function(d) {
+                            return d.rgb;
+                });
+  var textY = y + legendHeight;
+  svg.append("text")
+  .attr("class","legendText")
+  .attr("text-anchor", "end")
+  .attr("x", x)
+  .attr("y",textY)
+  .attr("dy",0)
+  .text(new Number(min).toPrecision(3));
+  svg.append("text")
+  .attr("class","legendText")
+  .attr("text-anchor", "start")
+  .attr("x", x + legendWidth )
+  .attr("y",textY)
+  .attr("dy",0)
+  .text(new Number(max).toPrecision(3))
+}
+
+function addXYlabel(svg){
+  svg.selectAll("*").remove();
+  svg.selectAll(".yLabel")
+  .data(y_values)
+  .enter().append("text")
+  .text(function (d, i) { return (y_values.length <= 5)?d:(i % 2 !== 0?"":d);})
+  .attr("x", labelSpaceWidth)
+  .attr("y", function (d, i) { return (y_values.length -i) * gridHeight; })
+  .style("text-anchor", "end")
+  .attr("transform", "translate(" + -labelSpaceWidth*0.1 +  ","+  -heatmapSize*0.03 + ")");
+  svg.append("text")
+  .text(convertVariableName(y_variable))
+  .attr("x", labelSpaceWidth*0.2)
+  .attr("y", 0.5*heatmapSize)
+  .style("text-anchor", "end")
+  .attr("class","bold");
+  //.attr("transform", "translate(" + 0 +  ","+ 0 + ")");
+
+  svg.selectAll(".xLabel")
+  .data(x_values)
+  .enter().append("text")
+  .text(function(d,i) { return (x_values.length <= 5)?d:(i % 2 !== 0?"":d); })
+  .attr("x", function(d, i) { return i * gridWidth + labelSpaceWidth;})
+  .attr("y", heatmapSize)
+  .style("text-anchor", "middle")
+  .attr("transform", "translate(" +  gridWidth*0.5 + "," +  labelSpaceWidth *0.3+ ")");
+   svg.append("text")
+  .text(convertVariableName(x_variable))
+  .attr("x", labelSpaceWidth + heatmapSize*0.5)
+  .attr("y", heatmapSize + 0.7*labelSpaceWidth)
+  .style("text-anchor", "middle")
+  .attr("class","bold");
+  //.attr("transform", "translate(" + 0 +  ","+ 0 + ")");
+}
+
+
+function setColorScale(data, color){
+  var M = d3.max(data, function (d) { return +d.mean; });
+  var m = d3.min(data, function (d) { return +d.mean; });
+  var colorScale = d3.scale.linear()
+  //.domain([0, max])
+  .domain([m, M])
+  .range(["whitesmoke", color]);
+  //.domain([0, max/2, max])
+  //.range(["blue", "white", "red"]);
+  colorScales[color] = colorScale;
+  min[color] = m;
+  max[color] = M;
+}
+
+function setSVG　(svg, z1_value, z2_value, dataset, relativeScale, color){
+  var data = Data[dataset];
+  var data2 = [];
+  for(var i = 0; i < data.length; i++){
+    if(Number(data[i][z1_variable]) == z1_value && Number(data[i][z2_variable]) == z2_value){
+      data2.push(data[i]);
+    }
+  }
+
+  if(relativeScale){
+    data = data2;
+  }
+  svg.selectAll("*").remove();
+  setColorScale(data, color)
+  addXYlabel(svg);
+  addCards(svg, data2, colorScales[color], dataset);
+  addLegend(svg, min[color], max[color], colorScales[color], color);
+}
+
+function setSVGLite　(svg, z1_value, z2_value, dataset, relativeScale, color){
+  var data = Data[dataset];
+  var data2 = [];
+  for(var i = 0; i < data.length; i++){
+    if(Number(data[i][z1_variable]) == z1_value && Number(data[i][z2_variable]) == z2_value){
+      data2.push(data[i]);
+    }
+  }
+  svg.selectAll(".card").remove();
+  addCards(svg, data2, colorScales[color], dataset);
+}
+
+
+
+function getUnsedVariables(V){
+  for(var i = 0; i < variables.length ; i++){
+      if($.inArray(variables[i], V) < 0){
+        return variables[i];
+      }
+  }
+}
+
+
+function getNonRedundantVariableSet(V, i){
+   switch(i){
+    case 0:
+      switch(V[0]){
+        case V[1]:
+          V[1] = getUnsedVariables(V);
+          return V;
+        case V[2]:
+           V[2] = getUnsedVariables(V);
+          return V;
+        case V[3]:
+          V[3] = getUnsedVariables(V);
+          return V;
+        default:
+         return V;
+      }
+    case 1:
+      switch(V[1]){
+        case V[2]:
+           V[2] = getUnsedVariables(V);
+          return V;
+        case V[3]:
+          V[3] = getUnsedVariables(V);
+          return V;
+        case V[0]:
+          V[0] = getUnsedVariables(V);
+          return V;
+        default:
+          return V;
+      }
+    case 2:
+      switch(V[2]){
+        case V[3]:
+          V[3] = getUnsedVariables(V);
+          return V;
+        case V[0]:
+          V[0] = getUnsedVariables(V);
+          return V;
+        case V[1]:
+          V[1] = getUnsedVariables(V);
+          return V;
+        default:
+          return V;
+      }
+    case 3:
+      switch(V[3]){
+        case V[0]:
+          V[0] = getUnsedVariables(V);
+          return V;
+        case V[1]:
+          V[1] = getUnsedVariables(V);
+          return V;
+        case V[2]:
+          V[2] = getUnsedVariables(V);
+          return V;
+        default:
+          return V;
+      }
+  }
+}
+
+function getTicks(v){
+  var ticks = [];
+  var ticks_positions =[];
+  var ticks_labels = [];
+
+  var scale = d3.scale.linear()
+      //.domain([0, max])
+    .domain([0, v.length-1])
+    .range([0, 100]);
+
+  for(var i = 0; i < v.length; i++){
+      ticks.push(i);
+      ticks_positions.push(scale(i));
+  }
+
+  if(v.length <=5 ){
+    for(var i = 0; i < v.length; i++){
+      ticks_labels.push(v[i]);
+    }
+   }else{
+     for(var i = 0; i < v.length; i++){
+       if(i % 2 == 0){
+         ticks_labels.push(v[i]);
+       }else{
+         ticks_labels.push("");
+       }
+     }
+   }
+
+  return [ticks, ticks_positions, ticks_labels];
+}
+
+
+
+function setPrmpickers(){
+  if(pp1Slider !== null){
+    pp1Slider.destroy();
+  }
+  if(pp2Slider !== null){
+    pp2Slider.destroy();
+  }
+
+
+  d3.select("#prmpicker1").select(".btn-label").text(convertVariableName(z1_variable) + " = " + z1_value );
+  var ticks1 = getTicks(z1_values);
+  pp1Slider = new Slider('#pp1Slider', {
+    formatter: function(value) {
+      z1_value = z1_values[value];
+      d3.select("#prmpicker1").select(".btn-label").text(convertVariableName(z1_variable) + " = " + z1_value );
+      if(relativeScale){
+      setSVG(svg1, z1_value, z2_value, dataset1, relativeScale, "red");
+      setSVG(svg2, z1_value, z2_value, dataset2, relativeScale, "orange");
+      setSVG(svg3, z1_value, z2_value, dataset3, relativeScale, "blue");
+      }else{
+      setSVGLite(svg1, z1_value, z2_value, dataset1, relativeScale, "red");
+      setSVGLite(svg2, z1_value, z2_value, dataset2, relativeScale, "orange");
+      setSVGLite(svg3, z1_value, z2_value, dataset3, relativeScale, "blue");
+      }
+      setViewLink()
+      return z1_value;
+    },
+    tooltip: "hide",
+    min: 0,
+    max: z1_values.length-1,
+    step: 1,
+    value: z1_index[z1_value],
+    ticks: ticks1[0],
+    ticks_positions: ticks1[1],
+    ticks_labels: ticks1[2]
+  });
+
+  d3.select("#prmpicker2").select(".btn-label").text(convertVariableName(z2_variable) + " = " + z2_value);
+  var ticks2 = getTicks(z2_values);
+  pp2Slider = new Slider('#pp2Slider', {
+    formatter: function(value) {
+      z2_value = z2_values[value];
+      d3.select("#prmpicker2").select(".btn-label").text(convertVariableName(z2_variable) + " = " + z2_value);
+      if(relativeScale){
+      setSVG(svg1, z1_value, z2_value, dataset1, relativeScale, "red");
+      setSVG(svg2, z1_value, z2_value, dataset2, relativeScale, "orange");
+      setSVG(svg3, z1_value, z2_value, dataset3, relativeScale, "blue");
+      }else{
+      setSVGLite(svg1, z1_value, z2_value, dataset1, relativeScale, "red");
+      setSVGLite(svg2, z1_value, z2_value, dataset2, relativeScale, "orange");
+      setSVGLite(svg3, z1_value, z2_value, dataset3, relativeScale, "blue");
+      }
+      setViewLink()
+      return z2_value;
+    },
+    tooltip: "hide",
+    min: 0,
+    max: z2_values.length-1,
+    step: 1,
+    value: z2_index[z2_value],
+    ticks: ticks2[0],
+    ticks_positions: ticks2[1],
+    ticks_labels: ticks2[2]
+  });
+}
+
+function setVariables2(v, i){
+  setVariables(getNonRedundantVariableSet(v,i));
+  d3.select("#varpicker_x").select("span").text(convertVariableName(x_variable));
+  d3.select("#varpicker_y").select("span").text(convertVariableName(y_variable));
+  d3.select("#varpicker_z1").select("span").text(convertVariableName(z1_variable));
+  d3.select("#varpicker_z2").select("span").text(convertVariableName(z2_variable));
+  setPrmpickers();
+  setViewLink();
+}
+
+function setControlPanel(){
+  d3.select("#varpicker_x").select("span").text(convertVariableName(x_variable));
+  var varpicker_x = d3.select("#varpicker_x").select("ul").selectAll("li").data(variables);
+  varpicker_x.enter().append("li").append("a").attr("href", "#").text(function(d){return convertVariableName(d);})
+  .on("click", function(d) {
+    setVariables2([d, y_variable, z1_variable, z2_variable],0);
+    setSVG(svg1, z1_value, z2_value, dataset1, relativeScale, "red");
+    setSVG(svg2, z1_value, z2_value, dataset2, relativeScale, "orange");
+    setSVG(svg3, z1_value, z2_value, dataset3, relativeScale, "blue");
+  });
+  d3.select("#varpicker_y").select("span").text(convertVariableName(y_variable));
+  var varpicker_y = d3.select("#varpicker_y").select("ul").selectAll("li").data(variables);
+  varpicker_y.enter().append("li").append("a").attr("href", "#").text(function(d){return convertVariableName(d);})
+  .on("click", function(d) {
+    setVariables2([x_variable, d, z1_variable, z2_variable],1);
+    setSVG(svg1, z1_value, z2_value, dataset1, relativeScale, "red");
+    setSVG(svg2, z1_value, z2_value, dataset2, relativeScale, "orange");
+    setSVG(svg3, z1_value, z2_value, dataset3, relativeScale, "blue");
+  });
+  d3.select("#varpicker_z1").select("span").text(convertVariableName(z1_variable));
+  var varpicker_z1 = d3.select("#varpicker_z1").select("ul").selectAll("li").data(variables);
+  varpicker_z1.enter().append("li").append("a").attr("href", "#").text(function(d){return convertVariableName(d);})
+  .on("click", function(d) {
+    setVariables2([x_variable, y_variable, d, z2_variable],2);
+    setSVG(svg1, z1_value, z2_value, dataset1, relativeScale, "red");
+    setSVG(svg2, z1_value, z2_value, dataset2, relativeScale, "orange");
+    setSVG(svg3, z1_value, z2_value, dataset3, relativeScale, "blue");
+  });
+  d3.select("#varpicker_z2").select("span").text(convertVariableName(z2_variable));
+  var varpicker_z2 = d3.select("#varpicker_z2").select("ul").selectAll("li").data(variables);
+  varpicker_z2.enter().append("li").append("a").attr("href", "#").text(function(d){return convertVariableName(d);})
+  .on("click", function(d) {
+    setVariables2([x_variable, y_variable, z1_variable, d],3);
+    setSVG(svg1, z1_value, z2_value, dataset1, relativeScale, "red");
+    setSVG(svg2, z1_value, z2_value, dataset2, relativeScale, "orange");
+    setSVG(svg3, z1_value, z2_value, dataset3, relativeScale, "blue");
+  });
+
+
+  d3.select("#scalepicker").select("span").text("absolute");
+  var scalepicker = d3.select("#scalepicker").select("ul").selectAll("li").data(["absolute","relative"]);
+  scalepicker.enter().append("li").append("a").attr("href", "#").text(function(d){return d;})
+  .on("click", function(d) {
+    if(d == "relative"){
+      relativeScale = true;
+    }else{
+      relativeScale = false;
+    }
+    d3.select("#scalepicker").select("span").text(relativeScale?"relative":"absolute");
+    setSVG(svg1, z1_value, z2_value, dataset1, relativeScale, "red");
+    setSVG(svg2, z1_value, z2_value, dataset2, relativeScale, "orange");
+    setSVG(svg3, z1_value, z2_value, dataset3, relativeScale, "blue");
+  });
+
+  setPrmpickers();
+
+  d3.select("#datasetpicker1").select("span").text(convertDatasetName(dataset1));
+  var datasetpicker1 = d3.select("#datasetpicker1").select("ul").selectAll("li").data(datasets);
+  datasetpicker1.enter().append("li").append("a").attr("href", "#").text(function(d){return convertDatasetName(d);})
+  .on("click", function(d) {
+    dataset1 = d;
+    setViewLink();
+    d3.select("#datasetpicker1").select("span").text(convertDatasetName(dataset1));
+    setSVG(svg1, z1_value, z2_value, dataset1, relativeScale, "red");
+  });
+  d3.select("#datasetpicker2").select("span").text(convertDatasetName(dataset2));
+  var datasetpicker2 = d3.select("#datasetpicker2").select("ul").selectAll("li").data(datasets);
+  datasetpicker2.enter().append("li").append("a").attr("href", "#").text(function(d){return convertDatasetName(d);})
+  .on("click", function(d) {
+    dataset2 = d;
+    setViewLink();
+    d3.select("#datasetpicker2").select("span").text(convertDatasetName(dataset2));
+    setSVG(svg2, z1_value, z2_value, dataset2, relativeScale, "orange");
+  });
+  d3.select("#datasetpicker3").select("span").text(convertDatasetName(dataset3));
+  var datasetpicker3 = d3.select("#datasetpicker3").select("ul").selectAll("li").data(datasets);
+  datasetpicker3.enter().append("li").append("a").attr("href", "#").text(function(d){return convertDatasetName(d);})
+  .on("click", function(d) {
+    dataset3 = d;
+    setViewLink();
+    d3.select("#datasetpicker3").select("span").text(convertDatasetName(dataset3));
+    setSVG(svg3, z1_value, z2_value, dataset3, relativeScale, "blue");
+  });
+
+  setViewLink();
+}
+
+function setViewLink(){
+  var link = "focused.php?dataset1=" + dataset1  + "&dataset2=" + dataset2 + "&dataset3=" + dataset3 + "&x=" + x_variable +  "&y=" + y_variable +   "&z1=" + z1_variable +  "&z2=" + z2_variable  +   "&Z1=" + z1_value +   "&Z2=" + z2_value;
+	d3.select("#viewlink_f").attr("href", link);
+	var link2 = "comparative.php?dataset1=" + dataset1 + "&dataset2=" + dataset2 + "&dataset3=" + dataset3 +  "&x=" + x_variable +  "&y=" + y_variable +   "&z1=" + z1_variable +  "&z2=" + z2_variable +   "&Z1=" + z1_value +   "&Z2=" + z2_value;
+	d3.select("#viewlink_c").attr("href", link2);
+}
